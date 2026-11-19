@@ -3,9 +3,7 @@ import argparse
 import json
 import math
 import re
-import shutil
 import time
-import unicodedata
 from pathlib import Path
 
 EPSILON = 1e-9
@@ -69,48 +67,6 @@ def generate(n):
     return cross, x
 
 
-def print_grids(pictures):
-    """Keep every cell and panel the same width in a Korean console."""
-    def text_width(text):
-        return sum(2 if unicodedata.east_asian_width(ch) in ('W', 'F', 'A') else 1
-                   for ch in text)
-
-    size = len(pictures[0][1])
-    width = max(3 * size - 1, max(text_width(title) for title, _ in pictures))
-    console_width = shutil.get_terminal_size(fallback=(80, 24)).columns
-    columns = max(1, min(len(pictures), (console_width + 4) // (width + 4)))
-    for start in range(0, len(pictures), columns):
-        group = pictures[start:start + columns]
-        print('    '.join(title + ' ' * (width - text_width(title))
-                          for title, _ in group).rstrip())
-        for i in range(size):
-            rows = [' '.join('■' if value != 0 else '□' for value in matrix[i])
-                    for _, matrix in group]
-            print('    '.join(row + ' ' * (width - text_width(row))
-                              for row in rows).rstrip())
-        print()
-
-
-def show_comparison(pattern, a, b, name_a, name_b, score_a, score_b):
-    """Display the actual matrices and their contributing cells."""
-    binary = all(value in (0, 1) for matrix in (pattern, a, b)
-                 for row in matrix for value in row)
-    print('\n[그림 비교: □ = 0, ■ = 1]' if binary else
-          '\n[그림 비교: □ = 0, ■ = 0이 아닌 값]')
-    for name, kernel, score in ((name_a, a, score_a), (name_b, b, score_b)):
-        pictures = [('입력 그림', pattern), (name + ' 기준', kernel)]
-        if binary:
-            overlap = [[pattern[i][j] * kernel[i][j] for j in range(len(pattern))]
-                       for i in range(len(pattern))]
-            pictures.append(('겹친 칸', overlap))
-        print('\n{0}와 비교 ({0} 점수: {1:g})'.format(name, score))
-        print_grids(pictures)
-        if binary:
-            print('겹친 ■ {:g}개 → {:g}점'.format(score, score))
-    if not binary:
-        print('실수 입력의 점수는 채운 칸 수가 아니라 원래 숫자를 곱해 더한 값입니다.')
-
-
 def benchmark(samples):
     print('\n[성능 분석: MAC 1회 기준, 평균/{}회]'.format(REPEATS))
     print('크기       평균 시간(ms)    연산 횟수(N²)')
@@ -154,7 +110,6 @@ def interactive(generated_filters=False):
     start = time.perf_counter_ns()
     score_a, score_b = mac(pattern, a), mac(pattern, b)
     elapsed = (time.perf_counter_ns() - start) / 1_000_000
-    show_comparison(pattern, a, b, '필터 A', '필터 B', score_a, score_b)
     print('\nA 점수: {:.16g}\nB 점수: {:.16g}'.format(score_a, score_b))
     print('두 필터 연산 시간: {:.6f} ms'.format(elapsed))
     result = decide(score_a, score_b, 'A', 'B')
@@ -162,7 +117,7 @@ def interactive(generated_filters=False):
     benchmark({3: (pattern, a)})
 
 
-def analyze(path, case_key=None):
+def analyze(path):
     try:
         with open(path, encoding='utf-8-sig') as file:
             data = json.load(file)
@@ -175,12 +130,6 @@ def analyze(path, case_key=None):
     except (OSError, ValueError) as error:
         print('파일/스키마 오류: {}'.format(error))
         return
-
-    if case_key is not None:
-        if case_key not in patterns:
-            print('선택한 케이스가 없습니다: {}'.format(case_key))
-            return
-        patterns = {case_key: patterns[case_key]}
 
     loaded, errors = {}, {}
     for n in (5, 13, 25):
@@ -222,8 +171,6 @@ def analyze(path, case_key=None):
             b = mac(pattern, loaded[n]['X'])
             result = decide(a, b)
             passed = result == expected
-            show_comparison(pattern, loaded[n]['Cross'], loaded[n]['X'],
-                            '십자가', '엑스', a, b)
             print('십자가(Cross) 점수: {:.16g} | 엑스(X) 점수: {:.16g}'.format(a, b))
             print('판정: {} | 정답: {} | {}'.format(
                 LABEL_NAMES[result], LABEL_NAMES[expected],
@@ -248,18 +195,15 @@ def analyze(path, case_key=None):
 def main():
     parser = argparse.ArgumentParser(description='Mini NPU Simulator')
     parser.add_argument('--mode', choices=('1', '2'))
-    parser.add_argument('--case', help='JSON에서 한 케이스만 보기 (예: size_5_1)')
     parser.add_argument('--generated-filters', action='store_true',
                         help='3x3 십자가와 X 필터를 자동 생성해 모드 1을 실행합니다.')
     parser.add_argument('--data', type=Path, default=Path(__file__).with_name('data.json'))
     args = parser.parse_args()
     if args.mode == '2' and args.generated_filters:
         parser.error('--generated-filters는 모드 1에서 사용하세요.')
-    if args.case and (args.mode == '1' or args.generated_filters):
-        parser.error('--case는 JSON 분석 모드에서 사용하세요.')
     print('=== Mini NPU Simulator ===')
     try:
-        mode = '2' if args.case else ('1' if args.generated_filters else args.mode)
+        mode = '1' if args.generated_filters else args.mode
         while mode not in ('1', '2'):
             print('1. 사용자 입력 (3x3)\n2. data.json 분석')
             mode = input('선택: ').strip()
@@ -268,7 +212,7 @@ def main():
         if mode == '1':
             interactive(args.generated_filters)
         else:
-            analyze(args.data, args.case)
+            analyze(args.data)
     except (EOFError, KeyboardInterrupt):
         print('\n입력이 종료되어 프로그램을 마칩니다.')
     except ValueError as error:
