@@ -73,6 +73,25 @@ A 점수는 1, B 점수는 5이며 판정은 B입니다. 측정 시간은 실행
 
 ![data.json의 실제 5×5, 13×13, 25×25 십자가와 X 패턴](docs/images/patterns-grid.png)
 
+#### 크기별 실제 JSON 내용
+
+아래는 같은 `data.json`에서 `filters.size_5`, `filters.size_13`, `filters.size_25`를 각각 발췌한 이미지입니다.
+실제 숫자와 키를 유지하고, 읽기 쉽도록 2차원 배열의 한 행을 이미지의 한 줄로 정렬했습니다.
+각 이미지에는 십자가 필터 `cross`와 X 필터 `x`의 전체 행렬이 들어 있습니다.
+다른 크기의 필터와 `patterns` 영역은 발췌 범위에서 제외했습니다.
+
+**5×5 JSON**
+
+![data.json의 실제 size_5 필터 값](docs/images/data-json-size-5.png)
+
+**13×13 JSON**
+
+![data.json의 실제 size_13 필터 값](docs/images/data-json-size-13.png)
+
+**25×25 JSON**
+
+![data.json의 실제 size_25 필터 값](docs/images/data-json-size-25.png)
+
 ### 선택 과제: 패턴 생성기
 
 - 선택 과제로 패턴 생성기를 구현했습니다. `generate(n)`은 중앙 행·열에 1을 넣어 십자가를 만들고, 두 대각선(`i == j`, `i + j == n - 1`)에 1을 넣어 X를 만듭니다. 나머지 칸은 0입니다.
