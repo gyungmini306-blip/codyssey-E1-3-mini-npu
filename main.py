@@ -277,35 +277,49 @@ def main():
     print('=== Mini NPU Simulator ===')
     try:
         mode = '2' if args.case else ('1' if args.generated_filters else args.mode)
-        while mode not in ('1', '2', '3', '4'):
-            print('1. 직접 입력하기 (3x3)')
-            print('2. JSON 예제 전체 보기')
-            print('3. JSON 예제 한 개만 보기')
-            print('4. 오류 처리 예제 보기')
-            mode = input('선택: ').strip()
-            if mode not in ('1', '2', '3', '4'):
-                print('1~4 중에서 선택하세요.')
-        if mode == '1':
-            interactive(args.generated_filters)
-        elif mode == '2':
-            analyze(args.data, args.case)
-        elif mode == '3':
-            cases = ('size_5_1', 'size_5_2', 'size_13_1',
-                     'size_13_2', 'size_25_1', 'size_25_2')
-            for index, key in enumerate(cases, 1):
-                print('{}. {}'.format(index, key))
-            print('번호를 선택하거나 JSON의 케이스 이름을 직접 입력하세요.')
-            selected = input('예제 선택: ').strip()
-            if selected in ('1', '2', '3', '4', '5', '6'):
-                selected = cases[int(selected) - 1]
-            analyze(args.data, selected)
-        else:
-            print('첫 케이스의 열 개수를 틀리게 만든 오류 처리 예제입니다.')
-            analyze(Path(__file__).parent / 'examples' / 'size-error.json')
+        while True:
+            while mode not in ('1', '2', '3', '4', 'q'):
+                print('\n1. 직접 입력하기 (3x3)')
+                print('2. JSON 예제 전체 보기')
+                print('3. JSON 예제 한 개만 보기')
+                print('4. 오류 처리 예제 보기')
+                print('q. 종료')
+                mode = input('선택: ').strip().lower()
+                if mode not in ('1', '2', '3', '4', 'q'):
+                    print('1~4 또는 q를 입력하세요.')
+            if mode == 'q':
+                break
+            try:
+                if mode == '1':
+                    interactive(args.generated_filters)
+                elif mode == '2':
+                    analyze(args.data, args.case)
+                elif mode == '3':
+                    cases = ('size_5_1', 'size_5_2', 'size_13_1',
+                             'size_13_2', 'size_25_1', 'size_25_2')
+                    for index, key in enumerate(cases, 1):
+                        print('{}. {}'.format(index, key))
+                    print('번호를 선택하거나 JSON의 케이스 이름을 직접 입력하세요.')
+                    selected = input('예제 선택: ').strip()
+                    if selected in ('1', '2', '3', '4', '5', '6'):
+                        selected = cases[int(selected) - 1]
+                    analyze(args.data, selected)
+                else:
+                    print('첫 케이스의 열 개수를 틀리게 만든 오류 처리 예제입니다.')
+                    analyze(Path(__file__).parent / 'examples' / 'size-error.json')
+            except ValueError as error:
+                print('연산 오류: {}'.format(error))
+            action = input('\n결과 확인 후 Enter: 메뉴로 돌아가기 / q: 종료 > ').strip().lower()
+            while action not in ('', 'q'):
+                action = input('Enter로 메뉴에 돌아가거나 q로 종료하세요 > ').strip().lower()
+            if action == 'q':
+                break
+            mode = None
+            args.case = None
+            args.generated_filters = False
+        print('프로그램을 종료합니다.')
     except (EOFError, KeyboardInterrupt):
         print('\n입력이 종료되어 프로그램을 마칩니다.')
-    except ValueError as error:
-        print('연산 오류: {}'.format(error))
 
 
 if __name__ == '__main__':
