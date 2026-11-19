@@ -73,9 +73,9 @@ def show_patterns(pattern, a, b, name_a, name_b, score_a, score_b):
     """Show actual input/filter values and nonzero products using emoji cells."""
     binary = all(value in (0, 1) for matrix in (pattern, a, b)
                  for row in matrix for value in row)
-    print('\n[그림: ⬛ 빈 칸(0), ⬜ 채운 칸(1), 🟦 겹친 칸]')
+    print('\n[그림: ⬛ 빈 칸(0), ⬜ 채운 칸(1)]')
     if not binary:
-        print('실수 입력에서 ⬜는 0이 아닌 값, 🟦는 곱이 0이 아닌 위치입니다.')
+        print('실수 입력에서 ⬜는 0이 아닌 값이며, 겹친 칸에서는 곱이 0이 아닌 위치입니다.')
         print('점수는 원래 숫자로 계산하며 색칠된 칸 수와 다를 수 있습니다.')
     size = len(pattern)
     for name, kernel, score in ((name_a, a, score_a), (name_b, b, score_b)):
@@ -83,7 +83,7 @@ def show_patterns(pattern, a, b, name_a, name_b, score_a, score_b):
         overlap = [[pattern[i][j] * kernel[i][j] for j in range(size)]
                    for i in range(size)]
         pictures = [('입력 그림', pattern, '⬜'), (name + ' 기준', kernel, '⬜'),
-                    ('겹친 칸', overlap, '🟦')]
+                    ('겹친 칸', overlap, '⬜')]
         width = max(size * 2, max(sum(2 if unicodedata.east_asian_width(ch)
                                     in ('W', 'F') else 1 for ch in title)
                                 for title, _, _ in pictures))
@@ -103,7 +103,7 @@ def show_patterns(pattern, a, b, name_a, name_b, score_a, score_b):
                 print('    '.join(rows).rstrip())
             print()
         if binary:
-            print('🟦 {:g}칸이 겹쳐서 {:g}점입니다.'.format(score, score))
+            print('⬜ {:g}칸이 겹쳐서 {:g}점입니다.'.format(score, score))
 
 
 def benchmark(samples):
