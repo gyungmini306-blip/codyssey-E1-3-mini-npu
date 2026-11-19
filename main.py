@@ -8,6 +8,8 @@ from pathlib import Path
 
 EPSILON = 1e-9
 REPEATS = 1000
+LABEL_NAMES = {'Cross': '십자가(Cross)', 'X': '엑스(X)',
+               'UNDECIDED': '판정 불가(UNDECIDED)'}
 
 
 def normalize_label(value):
@@ -99,7 +101,7 @@ def read_matrix(title):
 def interactive(generated_filters=False):
     if generated_filters:
         a, b = generate(3)
-        print('3x3 필터 자동 생성: A = 십자가, B = X')
+        print('3x3 필터 자동 생성: A = 십자가(Cross), B = 엑스(X)')
     else:
         a = read_matrix('필터 A')
         b = read_matrix('필터 B')
@@ -146,7 +148,7 @@ def analyze(path):
             if set(normalized) != {'Cross', 'X'}:
                 raise ValueError('Cross와 X 필터가 모두 필요합니다.')
             loaded[n] = normalized
-            print('size_{} 필터 로드 완료 (Cross, X)'.format(n))
+            print('{}x{} 기준 필터 불러오기 완료: 십자가(Cross), 엑스(X)'.format(n, n))
         except ValueError as error:
             errors[n] = str(error)
             print('size_{} 필터 오류: {}'.format(n, error))
@@ -169,13 +171,15 @@ def analyze(path):
             b = mac(pattern, loaded[n]['X'])
             result = decide(a, b)
             passed = result == expected
-            print('Cross 점수: {:.16g} | X 점수: {:.16g}'.format(a, b))
-            print('판정: {} | expected: {} | {}'.format(result, expected, 'PASS' if passed else 'FAIL'))
+            print('십자가(Cross) 점수: {:.16g} | 엑스(X) 점수: {:.16g}'.format(a, b))
+            print('판정: {} | 정답: {} | {}'.format(
+                LABEL_NAMES[result], LABEL_NAMES[expected],
+                '통과(PASS)' if passed else '실패(FAIL)'))
             if not passed:
-                reason = '동점 규칙(|차이| < 1e-9)' if result == 'UNDECIDED' else '예측과 expected 불일치'
+                reason = '동점 규칙(|차이| < 1e-9)' if result == 'UNDECIDED' else '판정과 정답 불일치'
                 failures.append((key, reason))
         except ValueError as error:
-            print('FAIL: {}'.format(error))
+            print('실패(FAIL): {}'.format(error))
             failures.append((key, str(error)))
 
     # Generated valid inputs keep all required benchmark sizes available.
