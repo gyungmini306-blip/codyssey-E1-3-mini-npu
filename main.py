@@ -67,6 +67,26 @@ def generate(n):
     return cross, x
 
 
+def show_comparison(pattern, a, b, name_a, name_b, score_a, score_b):
+    """Display the actual matrices and their contributing cells."""
+    binary = all(value in (0, 1) for matrix in (pattern, a, b)
+                 for row in matrix for value in row)
+    print('\n[그림 비교: □ = 0, ■ = 1]' if binary else
+          '\n[그림 비교: □ = 0, ■ = 0이 아닌 값]')
+    pictures = [('입력 그림', pattern), (name_a + ' 기준', a), (name_b + ' 기준', b)]
+    if binary:
+        for name, kernel, score in ((name_a, a, score_a), (name_b, b, score_b)):
+            overlap = [[pattern[i][j] * kernel[i][j] for j in range(len(pattern))]
+                       for i in range(len(pattern))]
+            pictures.append(('입력과 ' + name + '가 겹친 칸: {:g}개 = {:g}점'.format(score, score), overlap))
+    for title, matrix in pictures:
+        print('\n' + title)
+        for row in matrix:
+            print(''.join('■' if value != 0 else '□' for value in row))
+    if not binary:
+        print('실수 입력의 점수는 채운 칸 수가 아니라 원래 숫자를 곱해 더한 값입니다.')
+
+
 def benchmark(samples):
     print('\n[성능 분석: MAC 1회 기준, 평균/{}회]'.format(REPEATS))
     print('크기       평균 시간(ms)    연산 횟수(N²)')
@@ -110,6 +130,7 @@ def interactive(generated_filters=False):
     start = time.perf_counter_ns()
     score_a, score_b = mac(pattern, a), mac(pattern, b)
     elapsed = (time.perf_counter_ns() - start) / 1_000_000
+    show_comparison(pattern, a, b, '필터 A', '필터 B', score_a, score_b)
     print('\nA 점수: {:.16g}\nB 점수: {:.16g}'.format(score_a, score_b))
     print('두 필터 연산 시간: {:.6f} ms'.format(elapsed))
     result = decide(score_a, score_b, 'A', 'B')
@@ -117,7 +138,7 @@ def interactive(generated_filters=False):
     benchmark({3: (pattern, a)})
 
 
-def analyze(path):
+def analyze(path, case_key=None):
     try:
         with open(path, encoding='utf-8-sig') as file:
             data = json.load(file)
@@ -130,6 +151,12 @@ def analyze(path):
     except (OSError, ValueError) as error:
         print('파일/스키마 오류: {}'.format(error))
         return
+
+    if case_key is not None:
+        if case_key not in patterns:
+            print('선택한 케이스가 없습니다: {}'.format(case_key))
+            return
+        patterns = {case_key: patterns[case_key]}
 
     loaded, errors = {}, {}
     for n in (5, 13, 25):
@@ -171,6 +198,8 @@ def analyze(path):
             b = mac(pattern, loaded[n]['X'])
             result = decide(a, b)
             passed = result == expected
+            show_comparison(pattern, loaded[n]['Cross'], loaded[n]['X'],
+                            '십자가', '엑스', a, b)
             print('십자가(Cross) 점수: {:.16g} | 엑스(X) 점수: {:.16g}'.format(a, b))
             print('판정: {} | 정답: {} | {}'.format(
                 LABEL_NAMES[result], LABEL_NAMES[expected],
@@ -195,15 +224,18 @@ def analyze(path):
 def main():
     parser = argparse.ArgumentParser(description='Mini NPU Simulator')
     parser.add_argument('--mode', choices=('1', '2'))
+    parser.add_argument('--case', help='JSON에서 한 케이스만 보기 (예: size_5_1)')
     parser.add_argument('--generated-filters', action='store_true',
                         help='3x3 십자가와 X 필터를 자동 생성해 모드 1을 실행합니다.')
     parser.add_argument('--data', type=Path, default=Path(__file__).with_name('data.json'))
     args = parser.parse_args()
     if args.mode == '2' and args.generated_filters:
         parser.error('--generated-filters는 모드 1에서 사용하세요.')
+    if args.case and (args.mode == '1' or args.generated_filters):
+        parser.error('--case는 JSON 분석 모드에서 사용하세요.')
     print('=== Mini NPU Simulator ===')
     try:
-        mode = '1' if args.generated_filters else args.mode
+        mode = '2' if args.case else ('1' if args.generated_filters else args.mode)
         while mode not in ('1', '2'):
             print('1. 사용자 입력 (3x3)\n2. data.json 분석')
             mode = input('선택: ').strip()
@@ -212,7 +244,7 @@ def main():
         if mode == '1':
             interactive(args.generated_filters)
         else:
-            analyze(args.data)
+            analyze(args.data, args.case)
     except (EOFError, KeyboardInterrupt):
         print('\n입력이 종료되어 프로그램을 마칩니다.')
     except ValueError as error:
