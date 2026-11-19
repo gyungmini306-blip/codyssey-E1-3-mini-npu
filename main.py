@@ -4,6 +4,7 @@ import json
 import math
 import re
 import shutil
+import textwrap
 import time
 import unicodedata
 from pathlib import Path
@@ -69,42 +70,62 @@ def generate(n):
     return cross, x
 
 
+def number_text(value):
+    """Keep numeric values visible; omit .0 only for whole numbers."""
+    return str(int(value)) if value == int(value) else str(value)
+
+
+def show_matrices(matrices):
+    """Align numeric matrices and split wide matrices into column ranges."""
+    size = len(matrices[0][1])
+    cell_width = max(len(number_text(value)) for _, matrix in matrices
+                     for row in matrix for value in row)
+    screen = max(20, shutil.get_terminal_size(fallback=(80, 24)).columns)
+    panel_width = max(size * (cell_width + 1) - 1,
+                      max(sum(2 if unicodedata.east_asian_width(ch) in ('W', 'F')
+                              else 1 for ch in title) for title, _ in matrices))
+    panels = max(1, min(len(matrices), (screen + 4) // (panel_width + 4)))
+    if panel_width > screen:
+        columns = max(1, (screen + 1) // (cell_width + 1))
+        for title, matrix in matrices:
+            for start in range(0, size, columns):
+                end = min(size, start + columns)
+                print('{} ({}~{}열)'.format(title, start + 1, end))
+                for row in matrix:
+                    print(' '.join(number_text(v).rjust(cell_width) for v in row[start:end]))
+                print()
+        return
+    for start in range(0, len(matrices), panels):
+        group = matrices[start:start + panels]
+        headings = []
+        for title, _ in group:
+            width = sum(2 if unicodedata.east_asian_width(ch) in ('W', 'F') else 1
+                        for ch in title)
+            headings.append(title + ' ' * (panel_width - width))
+        print('    '.join(headings).rstrip())
+        for i in range(size):
+            rows = [' '.join(number_text(v).rjust(cell_width) for v in matrix[i])
+                    for _, matrix in group]
+            print('    '.join(row.ljust(panel_width) for row in rows).rstrip())
+        print()
+
+
 def show_patterns(pattern, a, b, name_a, name_b, score_a, score_b):
-    """Show actual input/filter values and nonzero products using emoji cells."""
-    binary = all(value in (0, 1) for matrix in (pattern, a, b)
-                 for row in matrix for value in row)
-    print('\n[그림: ⬜ 빈 칸(0), ⬛ 채운 칸(1)]' if binary else
-          '\n[그림: ⬜ 값이 0인 칸, ⬛ 값이 0이 아닌 칸]')
-    if not binary:
-        print('입력 또는 필터에 0과 1 이외의 값이 있습니다. 격자는 위치만 표시합니다.')
-        print('점수는 원래 숫자로 계산하며 색칠된 칸 수와 다를 수 있습니다.')
+    """Show actual input values, weights and products used to form the score."""
     size = len(pattern)
     for name, kernel, score in ((name_a, a, score_a), (name_b, b, score_b)):
-        print('\n{} 비교: {:g}점'.format(name, score))
-        overlap = [[pattern[i][j] * kernel[i][j] for j in range(size)]
-                   for i in range(size)]
-        pictures = [('입력 그림', pattern, '⬛'), (name + ' 기준', kernel, '⬛'),
-                    ('겹친 칸' if binary else '곱이 0이 아닌 칸', overlap, '⬛')]
-        width = max(size * 2, max(sum(2 if unicodedata.east_asian_width(ch)
-                                    in ('W', 'F') else 1 for ch in title)
-                                for title, _, _ in pictures))
-        screen = shutil.get_terminal_size(fallback=(80, 24)).columns
-        columns = max(1, min(3, (screen + 4) // (width + 4)))
-        for start in range(0, len(pictures), columns):
-            group = pictures[start:start + columns]
-            headings = []
-            for title, _, _ in group:
-                text_width = sum(2 if unicodedata.east_asian_width(ch)
-                                 in ('W', 'F') else 1 for ch in title)
-                headings.append(title + ' ' * (width - text_width))
-            print('    '.join(headings).rstrip())
-            for i in range(size):
-                rows = [''.join(filled if value != 0 else '⬜' for value in matrix[i])
-                        + ' ' * (width - size * 2) for _, matrix, filled in group]
-                print('    '.join(rows).rstrip())
-            print()
-        if binary:
-            print('⬛ {:g}칸이 겹쳐서 {:g}점입니다.'.format(score, score))
+        print('\n[{}와 계산]'.format(name))
+        products = [[pattern[i][j] * kernel[i][j] for j in range(size)]
+                    for i in range(size)]
+        show_matrices([('입력값', pattern), (name + ' 필터값', kernel),
+                       ('같은 자리끼리 곱한 값', products)])
+        terms = [number_text(v) for row in products for v in row if v != 0]
+        expression = ' + '.join(terms) if terms else '0'
+        screen = max(20, shutil.get_terminal_size(fallback=(80, 24)).columns)
+        print('0이 아닌 곱을 순서대로 더하면 (0인 항 생략):')
+        print(textwrap.fill(expression, width=screen, break_long_words=False,
+                            break_on_hyphens=False))
+        print('점수 = {!r}'.format(score))
 
 
 def benchmark(samples):
@@ -220,7 +241,7 @@ def analyze(path, case_key=None):
             passed = result == expected
             show_patterns(pattern, loaded[n]['Cross'], loaded[n]['X'],
                           '십자가', '엑스', a, b)
-            print('십자가(Cross) 점수: {:.16g} | 엑스(X) 점수: {:.16g}'.format(a, b))
+            print('십자가(Cross) 점수: {!r} | 엑스(X) 점수: {!r}'.format(a, b))
             print('판정: {} | 정답: {} | {}'.format(
                 LABEL_NAMES[result], LABEL_NAMES[expected],
                 '통과(PASS)' if passed else '실패(FAIL)'))
