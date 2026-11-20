@@ -177,17 +177,24 @@ python main.py --mode 2 --data examples/size-error.json
 첫 케이스는 5개여야 할 열이 4개여서 FAIL, 두 번째는 PASS이며 요약은 총 2건 / 통과 1건 / 실패 1건입니다.
 이는 데이터/스키마 오류를 보여 주는 예이고, 과제 제공 파일의 세 실패는 동점 비교 정책에 따른 결과입니다.
 
-### 실행 기록
+### 실행 화면과 기록
 
-최신 과제 데이터 전체 콘솔 출력은 [example_result.txt](example_result.txt)에 저장했습니다.
-성능 수치는 실행 시점마다 달라집니다.
+사용자가 과제 제공 데이터로 실행한 스크린샷을 바탕으로, 동점 실패·정상 통과·최종 요약을 한 장의 설명용 이미지로 재구성했습니다.
+숫자 행렬 전체 출력은 `example_result.txt`에서 확인할 수 있습니다.
+아래 요약은 이미지 편집 도구로 재구성한 설명 자료이며, 실제 원본 캡처는 하단 링크에 보관했습니다.
+
+![공식 데이터 실행 요약: 동점 실패 예, 정상 통과 예, 성능과 3 PASS·3 FAIL 결과](docs/images/official-run-summary.png)
+
+- `size_5_1`: Cross 0.9와 X 0.8999999999999999의 차이가 epsilon보다 작아 UNDECIDED이며, 정답 X와 달라 FAIL입니다.
+- `size_5_2`: Cross 8.9가 X 0.1보다 높아 Cross로 판정하고 정답과 일치하여 PASS입니다.
+- 전체 결과: 6건 중 3건 통과, 3건 실패. 실패 세 건 모두 동점 처리에 따른 정답 불일치입니다.
+- 화면의 평균 시간은 사용자가 캡처한 실행의 값입니다. 위 성능 표와 전체 로그는 별도 실행 기록이므로 측정 시점에 따라 시간이 다릅니다.
 
 <details>
-<summary>이전 자체 예제의 실행 스크린샷</summary>
+<summary>원본 캡처와 전체 출력 확인</summary>
 
-아래는 기존 자체 예제 6건이 모두 통과했던 시점의 사용자 제공 기록입니다.
-현재 과제 제공 데이터의 결과는 위 표와 최신 실행 기록의 3 PASS / 3 FAIL입니다.
-
-![이전 자체 생성 예제 실행 기록](docs/images/json-analysis.png)
+- [5×5 두 케이스의 계산 원본 캡처](docs/images/official-run-calculation-original.png)
+- [성능 표·결과 요약 원본 캡처](docs/images/official-run-results-original.png)
+- [전체 숫자 행렬과 계산 결과 텍스트](example_result.txt)
 
 </details>
