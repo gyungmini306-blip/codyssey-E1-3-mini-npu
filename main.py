@@ -419,11 +419,13 @@ def main():
         mode = '2' if args.case else ('1' if args.generated_filters else args.mode)
         while True:
             while mode not in ('1', '2', '3', '4', '5', 'q'):
-                print('\n1. 직접 입력하기 (3x3)')
+                print('\n[과제 실행]')
+                print('1. 직접 입력하기 (3x3)')
                 print('2. 전체 출력 (일반)')
-                print('3. JSON 예제 한 개만 보기')
-                print('4. 오류 처리 예제 보기')
-                print('5. 전체 출력 (보너스)')
+                print('3. 전체 출력 (보너스)')
+                print('\n[보조 확인]')
+                print('4. 공식 데이터 한 건 보기')
+                print('5. 오류 처리 시연')
                 print('q. 종료')
                 mode = input('선택: ').strip().lower()
                 if mode not in ('1', '2', '3', '4', '5', 'q'):
@@ -437,7 +439,7 @@ def main():
                     if args.case is None:
                         print('\n[전체 출력 (일반): 2차원 MAC]')
                     analyze(args.data, args.case)
-                elif mode == '3':
+                elif mode == '4':
                     cases = ('size_5_1', 'size_5_2', 'size_13_1',
                              'size_13_2', 'size_25_1', 'size_25_2')
                     for index, key in enumerate(cases, 1):
@@ -447,7 +449,7 @@ def main():
                     if selected in ('1', '2', '3', '4', '5', '6'):
                         selected = cases[int(selected) - 1]
                     analyze(args.data, selected)
-                elif mode == '5':
+                elif mode == '3':
                     print('\n[전체 출력 (보너스): 일반 전체 결과 + 최적화 전후 비교]')
                     analyze(args.data)
                     compare_memory_access(args.data)
