@@ -159,10 +159,28 @@ def read_matrix(title):
     return rows
 
 
+def show_generated():
+    print('\n[보너스: 패턴 자동 생성]')
+    while True:
+        try:
+            n = int(input('크기 N 입력 (예: 3, 5, 13, 25): '))
+            if n < 1:
+                raise ValueError
+        except ValueError:
+            print('크기는 1 이상의 정수로 입력하세요.')
+            continue
+        break
+    cross, x = generate(n)
+    print('\n[생성 결과: {}x{}]'.format(n, n))
+    print('1은 선이 있는 칸, 0은 빈칸입니다.')
+    show_matrices([('십자가(Cross)', cross), ('엑스(X)', x)])
+
+
 def interactive(generated_filters=False):
     if generated_filters:
         a, b = generate(3)
         print('3x3 필터 자동 생성: A = 십자가(Cross), B = 엑스(X)')
+        show_matrices([('필터 A: 십자가', a), ('필터 B: X', b)])
     else:
         a = read_matrix('필터 A')
         b = read_matrix('필터 B')
@@ -278,15 +296,16 @@ def main():
     try:
         mode = '2' if args.case else ('1' if args.generated_filters else args.mode)
         while True:
-            while mode not in ('1', '2', '3', '4', 'q'):
+            while mode not in ('1', '2', '3', '4', '5', 'q'):
                 print('\n1. 직접 입력하기 (3x3)')
                 print('2. JSON 예제 전체 보기')
                 print('3. JSON 예제 한 개만 보기')
                 print('4. 오류 처리 예제 보기')
+                print('5. 보너스: 패턴 자동 생성 보기')
                 print('q. 종료')
                 mode = input('선택: ').strip().lower()
-                if mode not in ('1', '2', '3', '4', 'q'):
-                    print('1~4 또는 q를 입력하세요.')
+                if mode not in ('1', '2', '3', '4', '5', 'q'):
+                    print('1~5 또는 q를 입력하세요.')
             if mode == 'q':
                 break
             try:
@@ -304,6 +323,8 @@ def main():
                     if selected in ('1', '2', '3', '4', '5', '6'):
                         selected = cases[int(selected) - 1]
                     analyze(args.data, selected)
+                elif mode == '5':
+                    show_generated()
                 else:
                     print('첫 케이스의 열 개수를 틀리게 만든 오류 처리 예제입니다.')
                     analyze(Path(__file__).parent / 'examples' / 'size-error.json')
