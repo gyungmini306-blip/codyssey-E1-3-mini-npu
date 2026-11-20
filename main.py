@@ -182,6 +182,33 @@ def average_mac_ms(function, pattern, kernel):
     return (time.perf_counter_ns() - start) / REPEATS / 1_000_000
 
 
+def show_size_comparison(results):
+    if not results:
+        return
+    print('\n[크기별 실행 시간: 일반 → 보너스]')
+    print('각 크기의 입력·필터 조합 평균입니다. 각 조합은 {}회 측정했습니다.'.format(REPEATS))
+    print('크기    일반 2차원(ms)  보너스 1차원(ms)   차이(ms)    시간 변화')
+    for n in (5, 13, 25):
+        rows = [row for row in results if row[4] == n * n]
+        if not rows:
+            continue
+        before = sum(row[2] for row in rows) / len(rows)
+        after = sum(row[3] for row in rows) / len(rows)
+        difference = before - after
+        if before <= 0:
+            change = '측정불가'
+        elif difference == 0:
+            change = '변화 없음'
+        else:
+            change = '{:.1f}% {}'.format(abs(difference / before * 100),
+                                        '감소' if difference > 0 else '증가')
+        print('{:2}x{:<2} {:14.6f} {:16.6f} {:+11.6f}    {}'.format(
+            n, n, before, after, difference, change))
+    print('차이 = 일반 - 보너스. 양수면 빨라짐, 음수면 느려짐입니다.')
+    print('이 표의 전후 값은 동일한 공식 입력으로 함께 측정한 값입니다.')
+    print('파일 읽기·배열 변환·출력 시간은 제외하며, 실행할 때마다 달라질 수 있습니다.')
+
+
 def compare_memory_access(path):
     print('\n[보너스 과제: 메모리 접근 최적화 비교]')
     try:
@@ -266,6 +293,7 @@ def compare_memory_access(path):
         print('- {}: {}'.format(key, reason))
     if not results:
         print('주의: 실제 비교된 MAC 연산이 없습니다.')
+    show_size_comparison(results)
 
 
 
@@ -392,10 +420,10 @@ def main():
         while True:
             while mode not in ('1', '2', '3', '4', '5', 'q'):
                 print('\n1. 직접 입력하기 (3x3)')
-                print('2. JSON 예제 전체 보기')
+                print('2. 전체 출력 (일반)')
                 print('3. JSON 예제 한 개만 보기')
                 print('4. 오류 처리 예제 보기')
-                print('5. 보너스: 메모리 접근 최적화 비교')
+                print('5. 전체 출력 (보너스)')
                 print('q. 종료')
                 mode = input('선택: ').strip().lower()
                 if mode not in ('1', '2', '3', '4', '5', 'q'):
@@ -406,6 +434,8 @@ def main():
                 if mode == '1':
                     interactive(args.generated_filters)
                 elif mode == '2':
+                    if args.case is None:
+                        print('\n[전체 출력 (일반): 2차원 MAC]')
                     analyze(args.data, args.case)
                 elif mode == '3':
                     cases = ('size_5_1', 'size_5_2', 'size_13_1',
@@ -418,6 +448,8 @@ def main():
                         selected = cases[int(selected) - 1]
                     analyze(args.data, selected)
                 elif mode == '5':
+                    print('\n[전체 출력 (보너스): 일반 전체 결과 + 최적화 전후 비교]')
+                    analyze(args.data)
                     compare_memory_access(args.data)
                 else:
                     print('첫 케이스의 열 개수를 틀리게 만든 오류 처리 예제입니다.')
