@@ -159,21 +159,115 @@ def read_matrix(title):
     return rows
 
 
-def show_generated():
-    print('\n[보너스: 패턴 자동 생성]')
-    while True:
+def flatten_matrix(matrix):
+    """Copy rows in order into one list, without changing any value."""
+    return [value for row in matrix for value in row]
+
+
+def mac_flat(pattern, kernel):
+    """MAC over validated, equally long flat lists in the original order."""
+    total = 0.0
+    for index in range(len(pattern)):
+        total += pattern[index] * kernel[index]
+    if not math.isfinite(total):
+        raise ValueError('MAC 결과가 유한하지 않습니다(수치 범위 초과).')
+    return total
+
+
+def average_mac_ms(function, pattern, kernel):
+    function(pattern, kernel)  # warm-up, excluded from measurement
+    start = time.perf_counter_ns()
+    for _ in range(REPEATS):
+        function(pattern, kernel)
+    return (time.perf_counter_ns() - start) / REPEATS / 1_000_000
+
+
+def compare_memory_access(path):
+    print('\n[보너스 과제: 메모리 접근 최적화 비교]')
+    try:
+        with open(path, encoding='utf-8-sig') as file:
+            data = json.load(file)
+        if not isinstance(data, dict):
+            raise ValueError('최상위 구조는 객체여야 합니다.')
+        filters, patterns = data.get('filters'), data.get('patterns')
+        if not isinstance(filters, dict) or not isinstance(patterns, dict):
+            raise ValueError('filters와 patterns는 객체여야 합니다.')
+    except (OSError, ValueError) as error:
+        print('파일/스키마 오류: {}'.format(error))
+        return
+
+    print('동일한 JSON 입력과 필터를 사용합니다. 각 방식은 {}회 반복합니다.'.format(REPEATS))
+    print('행 순서대로 펼친 뒤 MAC만 측정합니다. 파일 읽기·변환·출력 시간은 제외합니다.')
+    results, errors = [], []
+    preview_shown = False
+    for key, case in patterns.items():
+        print('\n--- {} ---'.format(key))
         try:
-            n = int(input('크기 N 입력 (예: 3, 5, 13, 25): '))
-            if n < 1:
-                raise ValueError
-        except ValueError:
-            print('크기는 1 이상의 정수로 입력하세요.')
-            continue
-        break
-    cross, x = generate(n)
-    print('\n[생성 결과: {}x{}]'.format(n, n))
-    print('1은 선이 있는 칸, 0은 빈칸입니다.')
-    show_matrices([('십자가(Cross)', cross), ('엑스(X)', x)])
+            match = re.fullmatch(r'size_(5|13|25)_([0-9]+)', key)
+            if not match:
+                raise ValueError('패턴 키는 size_{5/13/25}_{idx} 형식이어야 합니다.')
+            n = int(match.group(1))
+            if not isinstance(case, dict):
+                raise ValueError('패턴 케이스는 객체여야 합니다.')
+            pattern = validate_matrix(case.get('input'), n)
+            group = filters.get('size_{}'.format(n))
+            if not isinstance(group, dict):
+                raise ValueError('size_{} 필터 객체가 없습니다.'.format(n))
+            kernels = {}
+            for filter_key, matrix in group.items():
+                label = normalize_label(filter_key)
+                if label in kernels:
+                    raise ValueError('정규화 후 필터 라벨 중복: ' + label)
+                kernels[label] = validate_matrix(matrix, n)
+            if set(kernels) != {'Cross', 'X'}:
+                raise ValueError('Cross와 X 필터가 모두 필요합니다.')
+
+            flat_pattern = flatten_matrix(pattern)
+            if not preview_shown:
+                show_matrices([('원래 입력값: 2차원', pattern)])
+                print('같은 입력값: 1차원 (길이 {})'.format(len(flat_pattern)))
+                print(textwrap.fill(str(flat_pattern), width=max(20, shutil.get_terminal_size(
+                    fallback=(80, 24)).columns), break_long_words=False, break_on_hyphens=False))
+                print('필터도 같은 행 순서로 펼칩니다.\n')
+                preview_shown = True
+
+            scores_2d, scores_1d = {}, {}
+            for label in ('Cross', 'X'):
+                kernel = kernels[label]
+                flat_kernel = flatten_matrix(kernel)
+                score_2d = mac(pattern, kernel)
+                score_1d = mac_flat(flat_pattern, flat_kernel)
+                matched = score_2d == score_1d
+                ms_2d = average_mac_ms(mac, pattern, kernel)
+                ms_1d = average_mac_ms(mac_flat, flat_pattern, flat_kernel)
+                scores_2d[label], scores_1d[label] = score_2d, score_1d
+                results.append((key, label, ms_2d, ms_1d, n * n, matched))
+                print('{} 점수: 2차원={!r} | 1차원={!r} | {}'.format(
+                    label, score_2d, score_1d, '일치' if matched else '불일치'))
+            print('판정 비교: 2차원={} | 1차원={}'.format(
+                decide(scores_2d['Cross'], scores_2d['X']),
+                decide(scores_1d['Cross'], scores_1d['X'])))
+        except ValueError as error:
+            errors.append((key, str(error)))
+            print('케이스 처리 오류: {}'.format(error))
+
+    print('\n[MAC 1회 평균 시간 비교: 각 {}회]'.format(REPEATS))
+    print('케이스       필터     2차원(ms)   1차원(ms)   시간비   MAC단계(N²)')
+    for key, label, ms_2d, ms_1d, operations, _ in results:
+        ratio = '{:.2f}'.format(ms_2d / ms_1d) if ms_1d > 0 else '측정불가'
+        print('{:<12} {:<5} {:11.6f} {:11.6f} {:>7} {:6}'.format(
+            key, label, ms_2d, ms_1d, ratio, operations))
+    matched_count = sum(1 for row in results if row[-1])
+    print('\n시간비 = 2차원 시간 / 1차원 시간. 1보다 크면 이번 측정에서 1차원이 빠릅니다.')
+    print('점수 비교: {}건 | 일치: {} | 불일치: {} | 처리 오류: {}'.format(
+        len(results), matched_count, len(results) - matched_count, len(errors)))
+    print('이 일치 수는 두 계산 방식의 비교이며, 정답 라벨에 대한 PASS/FAIL과는 별개입니다.')
+    for key, reason in errors:
+        print('- {}: {}'.format(key, reason))
+    if not results:
+        print('주의: 실제 비교된 MAC 연산이 없습니다.')
+
+
 
 
 def interactive(generated_filters=False):
@@ -301,7 +395,7 @@ def main():
                 print('2. JSON 예제 전체 보기')
                 print('3. JSON 예제 한 개만 보기')
                 print('4. 오류 처리 예제 보기')
-                print('5. 보너스: 패턴 자동 생성 보기')
+                print('5. 보너스: 메모리 접근 최적화 비교')
                 print('q. 종료')
                 mode = input('선택: ').strip().lower()
                 if mode not in ('1', '2', '3', '4', '5', 'q'):
@@ -324,7 +418,7 @@ def main():
                         selected = cases[int(selected) - 1]
                     analyze(args.data, selected)
                 elif mode == '5':
-                    show_generated()
+                    compare_memory_access(args.data)
                 else:
                     print('첫 케이스의 열 개수를 틀리게 만든 오류 처리 예제입니다.')
                     analyze(Path(__file__).parent / 'examples' / 'size-error.json')
