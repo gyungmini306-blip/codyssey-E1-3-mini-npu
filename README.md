@@ -32,18 +32,9 @@ python main.py --mode 2 --case size_5_1
 python main.py --mode 2 --data "다른폴더/data.json"
 ```
 
-### data.json 위치와 출처
+### data.json 위치
 
-현재 `data.json`은 사용자가 2026-11-20에 코디세이 과제 데이터로 내려받아 제공한 `Downloads/data.json`입니다.
-제공받은 파일의 숫자, 라벨, 메타 정보와 파일 바이트를 변경하지 않고 복사했습니다.
-기존에 만든 자체 예제는 `examples/generated-data.json`, 당시 실행 기록은 `examples/generated-result.txt`로 보관했습니다.
-현재 기본 실행 결과는 과제 제공 파일을 기준으로 합니다.
-
-파일 SHA-256:
-
-```text
-1d5dc0f792b12802f954d92da4c17b0770b4f19efe846fec50ad589858d8c3e4
-```
+과제 제공 `data.json`을 `main.py`와 같은 폴더에 둡니다.
 
 ### 직접 입력 예시
 
@@ -106,8 +97,7 @@ NumPy 등의 외부 라이브러리는 사용하지 않습니다.
 
 ### 판정 결과와 실패 원인 분석
 
-공식 과제 데이터로 제공받은 파일을 실행한 결과는 **총 6건 / 통과 3건 / 실패 3건**입니다.
-실패 세 건의 배열이나 expected를 수정하지 않았습니다.
+과제 제공 `data.json`의 실행 결과는 **총 6건 / 통과 3건 / 실패 3건**입니다.
 
 | 케이스 | Cross 점수 | X 점수 | 판정 | 정답 | 결과 |
 |---|---:|---:|---|---|---|
@@ -162,13 +152,12 @@ NumPy 등의 외부 라이브러리는 사용하지 않습니다.
 
 #### 오류 시연
 
-4번 메뉴 또는 아래 명령은 자체 생성한 별도 오류 예제를 실행합니다. 과제 제공 data.json을 바꾼 파일이 아닙니다.
+4번 메뉴 또는 아래 명령으로 별도 오류 예제 `examples/size-error.json`을 실행합니다.
 
 ```text
 python main.py --mode 2 --data examples/size-error.json
 ```
 
-`examples/size-error.json`은 `patterns`를 파일 앞에 배치하고 배열 한 행을 한 줄로 작성했습니다.
 첫 케이스 `size_5_1`의 첫 행만 숫자가 4개이며, 나머지 행은 5개입니다.
 
 ```text
@@ -252,7 +241,7 @@ python main.py --mode 2 --data examples/size-error.json
 
 최종 결과는 **총 6건 / 통과 3건 / 실패 3건**입니다.
 실패한 `size_5_1`, `size_13_2`, `size_25_1`은 모두 동점 규칙에 따른 정답 불일치입니다.
-아래는 사용자가 캡처한 실제 성능 표와 요약 화면입니다.
+아래는 실제 성능 표와 요약 화면입니다.
 
 ![공식 데이터 실행의 실제 성능 표와 최종 요약](docs/images/official-run-results-original.png)
 
