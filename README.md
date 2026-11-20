@@ -179,22 +179,79 @@ python main.py --mode 2 --data examples/size-error.json
 
 ### 실행 화면과 기록
 
-사용자가 과제 제공 데이터로 실행한 스크린샷을 바탕으로, 동점 실패·정상 통과·최종 요약을 한 장의 설명용 이미지로 재구성했습니다.
-숫자 행렬 전체 출력은 `example_result.txt`에서 확인할 수 있습니다.
-아래 요약은 이미지 편집 도구로 재구성한 설명 자료이며, 실제 원본 캡처는 하단 링크에 보관했습니다.
+#### 5×5: 동점으로 판정 불가가 된 예
 
-![공식 데이터 실행 요약: 동점 실패 예, 정상 통과 예, 성능과 3 PASS·3 FAIL 결과](docs/images/official-run-summary.png)
+`size_5_1`의 입력은 X입니다. 십자가 필터로는 가운데의 `1 × 0.9`만 더해지고, X 필터로는 `1 × 0.1` 아홉 개가 더해집니다.
 
-- `size_5_1`: Cross 0.9와 X 0.8999999999999999의 차이가 epsilon보다 작아 UNDECIDED이며, 정답 X와 달라 FAIL입니다.
-- `size_5_2`: Cross 8.9가 X 0.1보다 높아 Cross로 판정하고 정답과 일치하여 PASS입니다.
-- 전체 결과: 6건 중 3건 통과, 3건 실패. 실패 세 건 모두 동점 처리에 따른 정답 불일치입니다.
-- 화면의 평균 시간은 사용자가 캡처한 실행의 값입니다. 위 성능 표와 전체 로그는 별도 실행 기록이므로 측정 시점에 따라 시간이 다릅니다.
+| 비교 기준 | 0이 아닌 곱의 합 | 실제 누적 점수 |
+|---|---|---:|
+| 십자가(Cross) | 0.9 | 0.9 |
+| 엑스(X) | 0.1을 9번 더함 | 0.8999999999999999 |
+
+두 점수의 차이가 `1e-9`보다 작아 판정은 UNDECIDED입니다.
+파일의 정답 X와 다르므로 FAIL로 기록됩니다.
+
+```text
+판정: 판정 불가(UNDECIDED) | 정답: 엑스(X) | 실패(FAIL)
+```
+
+#### 5×5: 정상 통과한 예
+
+`size_5_2`는 십자가 입력입니다. Cross 점수가 X 점수보다 높고, 판정이 정답과 일치합니다.
+
+```text
+십자가(Cross) 점수: 8.9 | 엑스(X) 점수: 0.1
+판정: 십자가(Cross) | 정답: 십자가(Cross) | 통과(PASS)
+```
 
 <details>
-<summary>원본 캡처와 전체 출력 확인</summary>
+<summary>5×5 계산 과정 원본 펼치기 — 입력값·필터값·위치별 곱</summary>
 
-- [5×5 두 케이스의 계산 원본 캡처](docs/images/official-run-calculation-original.png)
-- [성능 표·결과 요약 원본 캡처](docs/images/official-run-results-original.png)
-- [전체 숫자 행렬과 계산 결과 텍스트](example_result.txt)
+![5×5 두 케이스의 실제 계산 화면](docs/images/official-run-calculation-original.png)
 
 </details>
+
+#### 13×13·25×25 결과 확인
+
+위의 판정 결과 표에 여섯 케이스의 점수와 PASS/FAIL을 모두 기록했습니다.
+큰 행렬의 실제 계산 화면은 크기별로 펼쳐 볼 수 있습니다.
+
+<details>
+<summary>13×13 원본 펼치기 — X 통과와 십자가 동점 실패</summary>
+
+`size_13_1`은 Cross 0.3, X 14.700000000000008로 X 판정에 통과합니다.
+`size_13_2`는 Cross 7.499999999999997, X 7.5의 차이가 작아 동점으로 실패합니다.
+
+![13×13 X 입력의 실제 계산 화면](docs/images/official-run-13-x.png)
+
+![13×13 십자가 입력의 실제 계산 화면](docs/images/official-run-13-cross.png)
+
+</details>
+
+<details>
+<summary>25×25 원본 펼치기 — X 동점 실패와 십자가 통과</summary>
+
+캡처 순서대로 나열했습니다. `size_25_1`은 동점 FAIL, `size_25_2`는 Cross 판정 PASS입니다.
+
+![25×25 계산 원본 1: size_25_1의 Cross 비교](docs/images/official-run-25-1.png)
+
+![25×25 계산 원본 2: size_25_1의 X 비교](docs/images/official-run-25-2.png)
+
+![25×25 계산 원본 3: size_25_1의 판정과 size_25_2의 Cross 비교](docs/images/official-run-25-3.png)
+
+![25×25 계산 원본 4: size_25_2의 X 비교](docs/images/official-run-25-4.png)
+
+![25×25 계산 원본 5: size_25_2의 PASS 결과](docs/images/official-run-25-5.png)
+
+</details>
+
+#### 성능 분석과 최종 요약
+
+최종 결과는 **총 6건 / 통과 3건 / 실패 3건**입니다.
+실패한 `size_5_1`, `size_13_2`, `size_25_1`은 모두 동점 규칙에 따른 정답 불일치입니다.
+아래는 사용자가 캡처한 실제 성능 표와 요약 화면입니다.
+
+![공식 데이터 실행의 실제 성능 표와 최종 요약](docs/images/official-run-results-original.png)
+
+스크린샷의 평균 시간과 위 성능 표는 별도 실행에서 측정한 값으로, 실행 시점에 따라 시간이 달라집니다.
+전체 숫자 행렬과 계산 출력은 [example_result.txt](example_result.txt)에서도 확인할 수 있습니다.
