@@ -69,15 +69,67 @@ A 점수는 1, B 점수는 5이므로 판정은 **B**입니다. 이 예시에서
 콘솔에서는 표준 라벨을 유지하면서 `십자가(Cross)`, `엑스(X)`, `판정 불가(UNDECIDED)`로 설명합니다.
 `정답`은 정규화한 expected이고, 판정과 일치할 때 `통과(PASS)`, 다르면 `실패(FAIL)`입니다.
 
+**관련 코드 · [main.py의 normalize_label()](main.py#L18)**
+
+```python
+def normalize_label(value):
+    if not isinstance(value, str):
+        raise ValueError('라벨은 문자열이어야 합니다.')
+    labels = {'+': 'Cross', 'cross': 'Cross', 'x': 'X'}
+    try:
+        return labels[value.strip().lower()]
+    except KeyError:
+        raise ValueError('알 수 없는 라벨: {!r}'.format(value))
+```
+
+![JSON 라벨을 내부 표준 라벨과 콘솔 표시로 연결한 설명 그림](docs/images/concept-normalize.png)
+
 ### MAC 연산
 
 2차원 리스트에서 같은 위치의 두 값을 곱해 누적합니다. `mac()`은 검증된 같은 크기의 배열을 받아 float 점수를 반환합니다.
 NumPy 등의 외부 라이브러리는 사용하지 않습니다.
 
+**관련 코드 · [main.py의 mac()](main.py#L50)**
+
+```python
+def mac(pattern, kernel):
+    total = 0.0
+    for i in range(len(pattern)):
+        for j in range(len(pattern)):
+            total += pattern[i][j] * kernel[i][j]
+    if not math.isfinite(total):
+        raise ValueError('MAC 결과가 유한하지 않습니다(수치 범위 초과).')
+    return total
+```
+
+![직접 입력 예시의 X 패턴과 X 필터를 곱해 5점을 만드는 설명 그림](docs/images/concept-mac.png)
+
+<details>
+<summary>실제 MAC 계산 실행 화면</summary>
+
+![3×3 입력의 실제 위치별 곱과 A·B 점수](docs/images/mode1-result.png)
+
+</details>
+
 ### 동점 처리 정책
 
 `abs(score_a - score_b) < 1e-9`이면 동점으로 판정합니다. 정확히 문턱과 같은 차이는 동점에 포함하지 않습니다.
 동점의 반환값은 `UNDECIDED`입니다. 과제 데이터의 expected는 Cross 또는 X이므로 동점 판정은 FAIL입니다.
+
+**관련 코드 · [main.py의 decide()](main.py#L60)**
+
+```python
+EPSILON = 1e-9
+```
+
+```python
+def decide(a, b, label_a='Cross', label_b='X'):
+    if abs(a - b) < EPSILON:
+        return 'UNDECIDED'
+    return label_a if a > b else label_b
+```
+
+![size_5_1의 실제 점수 차이와 UNDECIDED 및 FAIL의 관계](docs/images/concept-epsilon.png)
 
 ### JSON 구조와 입력 검증
 
@@ -85,6 +137,48 @@ NumPy 등의 외부 라이브러리는 사용하지 않습니다.
 `patterns`의 `size_N_idx` 키에서 N을 추출해 필터를 선택하고, `input`과 `expected`를 검사합니다.
 최상위 `meta`는 파일의 메타 정보이며 MAC 판정에는 사용하지 않습니다.
 필터·패턴의 행과 열 수, 숫자 타입, 유한성을 확인합니다. 케이스 오류는 FAIL과 사유를 남기고 다음 케이스를 처리합니다.
+
+**관련 코드 · [main.py의 analyze()](main.py#L182)**
+
+JSON 파일 읽기:
+
+```python
+with open(path, encoding='utf-8-sig') as file:
+    data = json.load(file)
+```
+
+필터의 라벨을 정규화하고 배열 검증하기(발췌):
+
+```python
+group = filters.get('size_{}'.format(n))
+if not isinstance(group, dict):
+    raise ValueError('size_{} 필터 객체가 없습니다.'.format(n))
+normalized = {}
+for key, matrix in group.items():
+    label = normalize_label(key)
+    if label in normalized:
+        raise ValueError('정규화 후 필터 라벨 중복: ' + label)
+    normalized[label] = validate_matrix(matrix, n)
+```
+
+케이스 이름에서 크기를 읽고 입력·정답을 검증하기(발췌):
+
+```python
+match = re.fullmatch(r'size_(5|13|25)_([0-9]+)', key)
+if not match:
+    raise ValueError('패턴 키는 size_{5/13/25}_{idx} 형식이어야 합니다.')
+n = int(match.group(1))
+if n not in loaded:
+    raise ValueError('필터 오류: ' + errors[n])
+if not isinstance(case, dict):
+    raise ValueError('패턴 케이스는 객체여야 합니다.')
+pattern = validate_matrix(case.get('input'), n)
+expected = normalize_label(case.get('expected'))
+```
+
+배열의 행·열 수, 숫자 타입과 유한성 검사는 [main.py의 validate_matrix()](main.py#L28)에서 수행합니다.
+
+![실제 JSON의 size_5_1에서 크기 5를 읽어 필터를 연결하고 검증하는 설명 그림](docs/images/concept-json-validation.png)
 
 ### 숫자 표시와 실제 가중치
 
@@ -94,11 +188,47 @@ NumPy 등의 외부 라이브러리는 사용하지 않습니다.
 화면 너비를 넘는 큰 행렬은 열 범위를 표시하여 나눠 출력합니다.
 점수는 **원래 숫자끼리 곱한 합계**입니다. 예를 들어 size_5_1에서 십자가 기준은 중앙의 0.9, X 기준은 0.1 아홉 개의 합이므로 두 점수가 허용오차 안에서 같습니다.
 
+**관련 코드 · [main.py의 show_patterns()](main.py#L113)**
+
+```python
+products = [[pattern[i][j] * kernel[i][j] for j in range(size)]
+            for i in range(size)]
+show_matrices([('입력값', pattern), (name + ' 필터값', kernel),
+               ('같은 자리끼리 곱한 값', products)])
+terms = [number_text(v) for row in products for v in row if v != 0]
+expression = ' + '.join(terms) if terms else '0'
+```
+
+`products`는 자리별 곱, `terms`와 `expression`은 화면에 보여 줄 덧셈식입니다. 판정에 쓰는 점수는 `mac()`이 모든 칸을 순서대로 더해 계산합니다.
+
+![공식 size_5_1 입력과 Cross 필터의 실제 가중치 및 위치별 곱](docs/images/concept-weights.png)
+
+<details>
+<summary>실제 5×5 가중치 계산 실행 화면</summary>
+
+![실제 5×5 입력값·필터값·곱한 값·점수 출력](docs/images/official-run-calculation-original.png)
+
+</details>
+
 ### 선택 과제: 패턴 생성기
 
 `generate(n)`은 중앙 행·열의 십자가와 두 대각선의 X를 0/1 배열로 만듭니다.
 `python main.py --generated-filters`는 모드 1에서 3×3 필터를 자동 생성하고 패턴만 입력받습니다.
 성능 분석도 같은 함수로 3·5·13·25 크기의 입력을 준비합니다. 생성기는 과제 제공 가중치 파일과 독립된 규칙입니다.
+
+**관련 코드 · [main.py의 generate()](main.py#L66)**
+
+```python
+def generate(n):
+    """Return a center cross and both diagonals as n-by-n matrices."""
+    cross = [[float(i == n // 2 or j == n // 2) for j in range(n)] for i in range(n)]
+    x = [[float(i == j or i + j == n - 1) for j in range(n)] for i in range(n)]
+    return cross, x
+```
+
+`n // 2`는 중앙 위치, `i == j`와 `i + j == n - 1`은 두 대각선 조건입니다. 조건이 참이면 `float(True)`인 1.0, 거짓이면 0.0을 넣습니다.
+
+![실제 generate(3)이 반환하는 십자가와 X 숫자 배열](docs/images/concept-generator.png)
 
 ## 결과 리포트
 
