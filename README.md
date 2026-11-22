@@ -35,16 +35,6 @@ python main.py
 기본 결과를 확인하려면 2번, 최적화 전후까지 확인하려면 3번을 선택합니다.
 결과 확인 후 Enter를 누르면 이전 화면을 지우고 메뉴로 돌아갑니다. `q` 입력 후 Enter로 종료하며, 첫 메뉴에서도 `q`로 종료합니다.
 
-```text
-python main.py --mode 1
-python main.py --generated-filters
-python main.py --mode 2
-python main.py --mode 2 --case size_5_1
-python main.py --mode 2 --data "다른폴더/data.json"
-```
-
-`--generated-filters` 옵션은 3×3 필터 A·B를 자동으로 준비하며, 사용자는 판별할 패턴만 입력합니다.
-
 ### data.json 위치
 
 과제 제공 `data.json`을 `main.py`와 같은 폴더에 둡니다.
@@ -78,9 +68,20 @@ A 점수는 1, B 점수는 5이므로 판정은 **B**입니다. 이 예시에서
 
 ### 라벨 정규화
 
-`normalize_label()`은 expected의 `+`와 필터 키의 `cross`를 `Cross`로, `x`를 `X`로 바꿉니다.
-콘솔에서는 표준 라벨을 유지하면서 `십자가(Cross)`, `엑스(X)`, `판정 불가(UNDECIDED)`로 설명합니다.
-`정답`은 정규화한 expected이고, 판정과 일치할 때 `통과(PASS)`, 다르면 `실패(FAIL)`입니다.
+원본 JSON의 정답 필드 `expected`에는 **`+`와 `x`만 있습니다.** `Cross`라는 문자열이 정답에 적혀 있는 것은 아닙니다.
+`cross`는 `filters` 안에 있는 십자가 필터의 이름입니다.
+`normalize_label()`은 서로 다른 표기를 아래처럼 같은 이름으로 통일합니다.
+
+| 위치 | JSON 원본 표기 | 프로그램 내부 표준 이름 |
+|---|---|---|
+| 정답 `expected` | `+` | `Cross` |
+| 정답 `expected` | `x` | `X` |
+| `filters`의 필터 이름 | `cross` | `Cross` |
+| `filters`의 필터 이름 | `x` | `X` |
+
+파일을 수정하는 것이 아니라, 읽어 온 값을 프로그램 안에서 통일해 비교합니다.
+콘솔에서는 표준 이름을 `십자가(Cross)`, `엑스(X)`, `판정 불가(UNDECIDED)`로 표시합니다.
+따라서 화면의 `정답`은 원본 표기 그대로가 아니라 **정규화한 expected**입니다. 판정과 같으면 `통과(PASS)`, 다르면 `실패(FAIL)`입니다.
 
 **관련 코드 · [main.py의 normalize_label()](main.py#L20)**
 
@@ -309,7 +310,7 @@ def mac_flat(pattern, kernel):
 
 과제 제공 `data.json`의 실행 결과는 **총 6건 / 통과 3건 / 실패 3건**입니다.
 
-| 케이스 | Cross 점수 | X 점수 | 판정 | 정답 | 결과 |
+| 케이스 | Cross 점수 | X 점수 | 판정 | 정답(정규화 후) | 결과 |
 |---|---:|---:|---|---|---|
 | size_5_1 | 0.9 | 0.8999999999999999 | UNDECIDED | X | FAIL |
 | size_5_2 | 8.9 | 0.1 | Cross | Cross | PASS |
@@ -414,11 +415,8 @@ N²은 반복문 구조에서 얻은 연산량이며 실제 시간은 Python 버
 
 #### 오류 시연
 
-5번 메뉴 또는 아래 명령으로 별도 오류 예제 `examples/size-error.json`을 실행합니다.
-
-```text
-python main.py --mode 2 --data examples/size-error.json
-```
+`python main.py` 실행 후 **5. 오류 처리 시연**을 선택합니다.
+별도 오류 예제 `examples/size-error.json`으로 배열 크기 검증과 다음 케이스 처리를 확인합니다.
 
 첫 케이스 `size_5_1`의 첫 행만 숫자가 4개이며, 나머지 행은 5개입니다.
 
