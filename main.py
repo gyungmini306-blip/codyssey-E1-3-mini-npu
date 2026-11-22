@@ -2,8 +2,10 @@
 import argparse
 import json
 import math
+import os
 import re
 import shutil
+import sys
 import textwrap
 import time
 import unicodedata
@@ -466,6 +468,9 @@ def main():
             mode = None
             args.case = None
             args.generated_filters = False
+            if sys.stdout.isatty():
+                os.system('cls' if os.name == 'nt' else 'clear')
+                print('=== Mini NPU Simulator ===')
         print('프로그램을 종료합니다.')
     except (EOFError, KeyboardInterrupt):
         print('\n입력이 종료되어 프로그램을 마칩니다.')

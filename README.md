@@ -33,7 +33,7 @@ python main.py
 
 원문의 필수 모드는 1번과 2번입니다. 보너스 비교는 3번, 개별 확인과 오류 시연은 4번과 5번입니다.
 기본 결과를 확인하려면 2번, 최적화 전후까지 확인하려면 3번을 선택합니다.
-결과가 나온 뒤에는 Enter로 메뉴로 돌아가고, `q` 입력 후 Enter로 종료합니다. 첫 메뉴에서도 `q`로 종료합니다.
+결과 확인 후 Enter를 누르면 이전 화면을 지우고 메뉴로 돌아갑니다. `q` 입력 후 Enter로 종료하며, 첫 메뉴에서도 `q`로 종료합니다.
 
 ```text
 python main.py --mode 1
@@ -82,7 +82,7 @@ A 점수는 1, B 점수는 5이므로 판정은 **B**입니다. 이 예시에서
 콘솔에서는 표준 라벨을 유지하면서 `십자가(Cross)`, `엑스(X)`, `판정 불가(UNDECIDED)`로 설명합니다.
 `정답`은 정규화한 expected이고, 판정과 일치할 때 `통과(PASS)`, 다르면 `실패(FAIL)`입니다.
 
-**관련 코드 · [main.py의 normalize_label()](main.py#L18)**
+**관련 코드 · [main.py의 normalize_label()](main.py#L20)**
 
 ```python
 def normalize_label(value):
@@ -102,7 +102,7 @@ def normalize_label(value):
 2차원 리스트에서 같은 위치의 두 값을 곱해 누적합니다. `mac()`은 검증된 같은 크기의 배열을 받아 float 점수를 반환합니다.
 NumPy 등의 외부 라이브러리는 사용하지 않습니다.
 
-**관련 코드 · [main.py의 mac()](main.py#L50)**
+**관련 코드 · [main.py의 mac()](main.py#L52)**
 
 ```python
 def mac(pattern, kernel):
@@ -164,7 +164,7 @@ def mac(pattern, kernel):
 `1.11e-16`은 기준값이 아니라 계산으로 나온 차이이며, `1.11e-9`와도 다른 숫자입니다.
 파일의 정답은 X이므로, 이 케이스는 판정과 정답이 달라 FAIL로 기록됩니다.
 
-**관련 코드 · [main.py의 decide()](main.py#L60)**
+**관련 코드 · [main.py의 decide()](main.py#L62)**
 
 ```python
 EPSILON = 1e-9
@@ -186,7 +186,7 @@ def decide(a, b, label_a='Cross', label_b='X'):
 최상위 `meta`는 파일의 메타 정보이며 MAC 판정에는 사용하지 않습니다.
 필터·패턴의 행과 열 수, 숫자 타입, 유한성을 확인합니다. 케이스 오류는 FAIL과 사유를 남기고 다음 케이스를 처리합니다.
 
-**관련 코드 · [main.py의 analyze()](main.py#L322)**
+**관련 코드 · [main.py의 analyze()](main.py#L324)**
 
 JSON 파일 읽기:
 
@@ -224,7 +224,7 @@ pattern = validate_matrix(case.get('input'), n)
 expected = normalize_label(case.get('expected'))
 ```
 
-배열의 행·열 수, 숫자 타입과 유한성 검사는 [main.py의 validate_matrix()](main.py#L28)에서 수행합니다.
+배열의 행·열 수, 숫자 타입과 유한성 검사는 [main.py의 validate_matrix()](main.py#L30)에서 수행합니다.
 
 ![실제 JSON의 size_5_1에서 크기 5를 읽어 필터를 연결하고 검증하는 설명 그림](docs/images/concept-json-validation.png)
 
@@ -236,7 +236,7 @@ expected = normalize_label(case.get('expected'))
 화면 너비를 넘는 큰 행렬은 열 범위를 표시하여 나눠 출력합니다.
 점수는 **원래 숫자끼리 곱한 합계**입니다. 예를 들어 size_5_1에서 십자가 기준은 중앙의 0.9, X 기준은 0.1 아홉 개의 합이므로 두 점수가 허용오차 안에서 같습니다.
 
-**관련 코드 · [main.py의 show_patterns()](main.py#L113)**
+**관련 코드 · [main.py의 show_patterns()](main.py#L115)**
 
 ```python
 products = [[pattern[i][j] * kernel[i][j] for j in range(size)]
@@ -271,7 +271,7 @@ expression = ' + '.join(terms) if terms else '0'
 
 **관련 코드**
 
-[배열을 행 순서대로 펼치는 함수](main.py#L162):
+[배열을 행 순서대로 펼치는 함수](main.py#L164):
 
 ```python
 def flatten_matrix(matrix):
@@ -279,7 +279,7 @@ def flatten_matrix(matrix):
     return [value for row in matrix for value in row]
 ```
 
-[1차원 MAC 함수](main.py#L167):
+[1차원 MAC 함수](main.py#L169):
 
 ```python
 def mac_flat(pattern, kernel):
@@ -292,7 +292,7 @@ def mac_flat(pattern, kernel):
     return total
 ```
 
-[공식 파일 로드·점수 검증·시간 비교](main.py#L212)에서 두 함수를 호출합니다.
+[공식 파일 로드·점수 검증·시간 비교](main.py#L214)에서 두 함수를 호출합니다.
 
 **측정 조건과 해석**
 
